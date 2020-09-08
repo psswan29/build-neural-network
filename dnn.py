@@ -1,7 +1,7 @@
 # 手动建立全连接神经网络
 # 作者：Jason（shaoming，wang）
 
-
+import numpy as np
 # 方法一：面向对象
 
 # 定义图上所有节点的父类节点
@@ -53,15 +53,24 @@ class Input_node(Node):
             self.value = value
 
     def backward(self):
+        # 梯度初始化
         self.gradients = {self:0}
         for node in self.outputs:
             gradients_cost = node.gradients[self]
+            # 梯度的传递遵循链式法则，
+            # 因此是一个连乘的形式
+            self.gradients[self] = 1 * gradients_cost
 
 class Linear_node(Node):
-    def __init__(self):
-        super(Node,self).__init__()
+
+    def __init__(self,input_nodes, weights, bias):
+        super(Node,self).__init__([input_nodes, weights, bias])
+
     def forward(self):
-        pass
+        input_values = self.inputs[0].value
+        weight_values = self.inputs[1].value
+        bias_values = self.inputs[2].value
+        self.value = np.dot(input_values,weight_values) + bias_values
     def backward(self):
         pass
 
