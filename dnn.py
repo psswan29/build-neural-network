@@ -72,7 +72,13 @@ class Linear_node(Node):
         bias_values = self.inputs[2].value
         self.value = np.dot(input_values,weight_values) + bias_values
     def backward(self):
-        pass
+        # 为所有网络中传入节点梯度初始化
+        self.gradients = {node:np.zeros_like(node.value) for node in self.inputs}
+        for node in self.outputs:
+            gradients_cost = node.gradients[self]
+            self.gradients[self.inputs[0]] = np.dot()
+            self.gradients[self.inputs[1]] = np.dot()
+            self.gradients[self.inputs[2]]
 
 class Activiation(Node):
     def __init__(self):
