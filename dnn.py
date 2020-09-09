@@ -1,12 +1,12 @@
 # 手动建立全连接神经网络
-# 作者：Jason（shaoming，wang）
+# 作者：Jason（Shaoming，Wang）
 
 # 方法一：面向对象
 
 # 定义图上所有节点的父类节点
 # 此节点具备向前传播、向后传播两种方法，子节点会在后面覆写
-# forward porpagation
-# bakcward porpagation
+# forward propagation
+# backward propagation
 # 否则会报一个NotImplementedError
 
 # 同时定义多种属性 attributes
@@ -71,7 +71,7 @@ class Linear_node(Node):
         weight_values = self.inputs[1].value
         bias_values = self.inputs[2].value
         self.value = np.dot(input_values,weight_values) + bias_values
-    # todo
+
     def backward(self):
         # 为所有网络中传入节点梯度初始化
         # 记录了所有传入节点的梯度信息
@@ -135,13 +135,12 @@ class MSE(Node):
         self.gradients[self.inputs[1]] = -2 * np.mean(self.diff)
 
 #   todo: 完成一个拓扑排序
-def toplogical_sort():
+def toplogical_sort(input_dict):
     pass
 
 if __name__ == '__main__':
     import numpy as np
     from sklearn.datasets import load_boston
-    from sklearn.utils import shuffle, resample
 
     # 数据导入
     data = load_boston()
