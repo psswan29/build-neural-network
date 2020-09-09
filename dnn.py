@@ -1,7 +1,6 @@
 # 手动建立全连接神经网络
 # 作者：Jason（shaoming，wang）
 
-import numpy as np
 # 方法一：面向对象
 
 # 定义图上所有节点的父类节点
@@ -11,6 +10,7 @@ import numpy as np
 # 否则会报一个NotImplementedError
 
 # 同时定义多种属性 attributes
+# inputs以及outputs是用来构建一个网络graph
 # inputs 所有输入对象，用一个列表容器呈装
 # outputs 所有输出对象，用一个列表容器呈装
 # value 是输出值，输出结果
@@ -71,28 +71,88 @@ class Linear_node(Node):
         weight_values = self.inputs[1].value
         bias_values = self.inputs[2].value
         self.value = np.dot(input_values,weight_values) + bias_values
+    # todo
     def backward(self):
         # 为所有网络中传入节点梯度初始化
+        # 记录了所有传入节点的梯度信息
         self.gradients = {node:np.zeros_like(node.value) for node in self.inputs}
+
         for node in self.outputs:
             gradients_cost = node.gradients[self]
-            self.gradients[self.inputs[0]] = np.dot()
-            self.gradients[self.inputs[1]] = np.dot()
-            self.gradients[self.inputs[2]]
+            self.gradients[self.inputs[0]] = np.dot(gradients_cost,self.inputs[1].value.T)
+            self.gradients[self.inputs[1]] = np.dot(self.inputs[0].value.T, gradients_cost)
+            self.gradients[self.inputs[2]] = np.sum(gradients_cost, axis=0, keepdims=False)
+        # XW + B / W ==> X
+        # XW + B / X ==> W
 
 class Activiation(Node):
-    def __init__(self):
-        super(Node,self).__init__()
+    # 激活函数
+    def __init__(self, node, act_type='sigmoid'):
+        super(Node,self).__init__([node])
+        self.act_type = act_type
+    # 向前传播
+    def _sigmoid(self, x):
+        return 1/(1 + np.exp(-1 * x))
+
     def forward(self):
-        pass
+        self.x = self.inputs[0].value
+        if self.act_type == 'sigmoid':
+            self.value = self._sigmoid(self.x)
+
     def backward(self):
-        pass
+        # y = 1 / (1 + e^-x)
+        # y' = 1 / (1 + e^-x) (1 - 1 / (1 + e^-x))
+        if self.act_type == 'sigmoid':
+            self.partial = self._sigmoid(self.x) * (1 - self._sigmoid(self.x))
+
+        # 参数初始化
+        self.gradients = {node:np.zeros_like(node.value) for node in self.inputs}
+
+        for node in self.outputs:
+            grad_cost = node.gradients[self]
+            self.gradients[self.inputs[0]]= grad_cost * self.partial
 
 class MSE(Node):
-    def __init__(self):
-        super(Node,self).__init__()
+    def __init__(self, y_truth, node):
+        super(Node,self).__init__([y_truth, node])
+
     def forward(self):
-        pass
+        y_truth = self.inputs[0]
+        y_pred = self.inputs[1].value
+
+        # 为了不出错，保证真值与预测值之间的shape是相同的
+        # 利用属性进行变量的传递
+        y_truth = y_truth.reshape(-1,1)
+        self.m = y_truth.shape[0]
+        y_pred = y_pred.reshape(-1,1)
+        assert y_truth.shape == y_pred.shape
+        self.diff = y_truth-y_pred
+        self.value = np.mean((self.diff)**2)
+
     def backward(self):
-        pass
+        # 这里是对损失函数求偏微分
+        self.gradients[self.inputs[0]] = 2 * np.mean(self.diff)
+        self.gradients[self.inputs[1]] = -2 * np.mean(self.diff)
+
+#   todo: 完成一个拓扑排序
+def toplogical_sort():
+    pass
+
+if __name__ == '__main__':
+    import numpy as np
+    from sklearn.datasets import load_boston
+    from sklearn.utils import shuffle, resample
+
+    # 数据导入
+    data = load_boston()
+    X_ = data['data']
+    y_ = data['target']
+
+    # 标准化
+    X_ = (X_ - np.mean(X_, axis=0))/ np.std(X_, axis=0)
+
+
+
+
+
 
