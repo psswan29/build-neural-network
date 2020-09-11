@@ -1,4 +1,4 @@
-# 手动建立全连接神经网络
+# 手动建立全连接神经网络\密集神经网络
 # 作者：Jason（Shaoming，Wang）
 
 # 方法一：面向对象
@@ -62,7 +62,9 @@ class Input_node(Node):
             self.gradients[self] = 1 * gradients_cost
 
 class Linear_node(Node):
-
+    """
+    线性组合
+    """
     def __init__(self,input_nodes, weights, bias):
         super(Node,self).__init__([input_nodes, weights, bias])
 
@@ -113,6 +115,9 @@ class Activiation(Node):
             self.gradients[self.inputs[0]]= grad_cost * self.partial
 
 class MSE(Node):
+    """
+    均方误差方法
+    """
     def __init__(self, y_truth, node):
         super(Node,self).__init__([y_truth, node])
 
@@ -134,20 +139,62 @@ class MSE(Node):
         self.gradients[self.inputs[0]] = 2 * np.mean(self.diff)
         self.gradients[self.inputs[1]] = -2 * np.mean(self.diff)
 
-#   todo: 完成一个拓扑排序
+
 def toplogical_sort(feed_dict):
     """
-    拓扑排序，使用Kahn's 算法
-    :param feed_dict:
+    拓扑排序，需要完成的条件排在前面，使用Kahn's 算法
+    :param feed_dict: 一个字典，键值是node，值是初始值
     :return:
+    一个列表，记录了节点运行顺序
     """
     input_nodes = list(feed_dict.keys())
+
+    # G是生成的graph
     G={}
+    # 需要生成一个备份用于操作输入节点
     nodes = input_nodes.copy()
 
+    # 以下代码是构建G的过程
     while len(nodes) > 0:
-        pass
+        node = nodes.pop(0)
+        if node not in G:
+            G[node] = {'in':set(), 'out':set()}
+        for m in node.outputs:
+            if m not in G:
+                G[m] = {'in':set(), 'out':set()}
+            G[m]['in'].add(node)
+            G[node]['out'].add(m)
+            nodes.append(m)
 
+    # 初始化结果列表
+    L = []
+    S = set(input_nodes)
+
+    while len(S)>0:
+        node = S.pop()
+        # 若此节点为输入节点实例，直接用初始值赋值
+        if isinstance(node, Input_node):
+            node.value = feed_dict[node]
+
+        L.append(node)
+        for m in node.outputs:
+            # 判断是否所有条件都已经具备
+            G[m]['in'].remove(node)
+            G[node]['out'].remove(m)
+            if len(G[m]['in']) == 0 :
+                S.add(m)
+
+    return L
+
+def sgd_update(trainables, learn_rate=1e-2):
+    """
+
+    :param trainables: 需要训练的参数
+    :param learn_rate: 学习率
+    :return:
+    """
+    for t in trainables:
+        t.value += -1 * learn_rate * t.gradients[t]
 
 if __name__ == '__main__':
     import numpy as np
@@ -187,4 +234,21 @@ if __name__ == '__main__':
         b2:B2_
     }
 
-    epoch =1000
+    epoch = 5000
+    # 总共样本数
+    m = X_.shape[0]
+    batch_num = 16
+    step_per_epoch = m//batch_num
+
+    graph = toplogical_sort(feed_dict)
+    trainables = [W1, W2, b1, b2]
+
+    print('the total number of observation is ()'.format(m))
+
+    for i in range(epoch):
+        loss =0
+
+
+        sgd_update(trainables)
+
+
