@@ -135,8 +135,19 @@ class MSE(Node):
         self.gradients[self.inputs[1]] = -2 * np.mean(self.diff)
 
 #   todo: 完成一个拓扑排序
-def toplogical_sort(input_dict):
-    pass
+def toplogical_sort(feed_dict):
+    """
+    拓扑排序，使用Kahn's 算法
+    :param feed_dict:
+    :return:
+    """
+    input_nodes = list(feed_dict.keys())
+    G={}
+    nodes = input_nodes.copy()
+
+    while len(nodes) > 0:
+        pass
+
 
 if __name__ == '__main__':
     import numpy as np
@@ -150,8 +161,30 @@ if __name__ == '__main__':
     # 标准化
     X_ = (X_ - np.mean(X_, axis=0))/ np.std(X_, axis=0)
 
+    # 初始化参数
+    n_feature = X_.shape[0]
+    n_hidden = 10
+    W1_ = np.random.randn(n_feature, n_hidden)
+    B1_ = np.zeros(n_hidden)
+    W2_ = np.random.randn(n_hidden,1)
+    B2_ = np.zeros(1)
 
+    X, y = Input_node(), Input_node()
+    W1, b1 = Input_node(), Input_node()
+    W2, b2 = Input_node(), Input_node()
 
+    l1 = Linear_node(X, W1, b1)
+    s1 = Activiation(l1)
+    l2 = Linear_node(s1, W2, b2)
+    cost = MSE(y, l2)
 
+    feed_dict = {
+        X:X_,
+        y:y_,
+        W1:W1_,
+        W2:W2_,
+        b1:B1_,
+        b2:B2_
+    }
 
-
+    epoch =1000
