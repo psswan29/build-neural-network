@@ -189,16 +189,18 @@ def toplogical_sort(feed_dict):
 def sgd_update(trainables, learn_rate=1e-2):
     """
 
-    :param trainables: 需要训练的参数
+    :param trainables: 需要训练的参数,是节点
     :param learn_rate: 学习率
     :return:
     """
     for t in trainables:
         t.value += -1 * learn_rate * t.gradients[t]
 
+# 主程序
 if __name__ == '__main__':
     import numpy as np
     from sklearn.datasets import load_boston
+    from sklearn.utils import resample, shuffle
 
     # 数据导入
     data = load_boston()
@@ -235,19 +237,23 @@ if __name__ == '__main__':
     }
 
     epoch = 5000
-    # 总共样本数
-    m = X_.shape[0]
+    # 总共样本观测数
+    observations_num = X_.shape[0]
+    # batch数目
     batch_num = 16
-    step_per_epoch = m//batch_num
+    step_per_epoch = observations_num//batch_num
 
+    # 经过拓扑排序，使得每一步的条件都具备后
     graph = toplogical_sort(feed_dict)
     trainables = [W1, W2, b1, b2]
 
-    print('the total number of observation is ()'.format(m))
+    print('the total number of observations is ()'.format(observations_num))
 
     for i in range(epoch):
         loss =0
-
+        # 这里不能设置random_state 参数，
+        # 否则每次取得样本都一样了
+        x_batch, y_batch =resample(X_, y_, n_samples=observations_num)
 
         sgd_update(trainables)
 
