@@ -18,7 +18,7 @@
 
 # 定义父节点,这是神经网络中所有节点的父节点
 class Node(object):
-    def __init__(self, inputs =[]):
+    def __init__(self, inputs=[]):
         # 这两个属性记录每个节点连接的节点
         self.inputs = inputs
         self.outputs = []
@@ -29,7 +29,7 @@ class Node(object):
         # 如果每一个节点的输入链接到上一个节点输出，起连接点的作用
         # 若为起始输入点则是每个节点的输出节点
         for n in self.inputs:
-            n.outpus.append(self)
+            n.outputs.append(self)
 
 
     def forward(self):
@@ -44,7 +44,7 @@ class Node(object):
 class Input_node(Node):
     # 因为输入节点不属于内部节点，可以不传递其他参数
     def __init__(self):
-        super(Node,self).__init__()
+        super().__init__()
 
     # 只有在输入节点, value 被传递给forward
     # 其他节点只能从前一个节点得到
@@ -66,7 +66,7 @@ class Linear_node(Node):
     线性组合
     """
     def __init__(self,input_nodes, weights, bias):
-        super(Node,self).__init__([input_nodes, weights, bias])
+        super().__init__([input_nodes, weights, bias])
 
     def forward(self):
         input_values = self.inputs[0].value
@@ -84,13 +84,14 @@ class Linear_node(Node):
             self.gradients[self.inputs[0]] = np.dot(gradients_cost,self.inputs[1].value.T)
             self.gradients[self.inputs[1]] = np.dot(self.inputs[0].value.T, gradients_cost)
             self.gradients[self.inputs[2]] = np.sum(gradients_cost, axis=0, keepdims=False)
+
         # XW + B / W ==> X
         # XW + B / X ==> W
 
 class Activiation(Node):
     # 激活函数
     def __init__(self, node, act_type='sigmoid'):
-        super(Node,self).__init__([node])
+        super().__init__([node])
         self.act_type = act_type
     # 向前传播
     def _sigmoid(self, x):
@@ -119,26 +120,36 @@ class MSE(Node):
     均方误差方法
     """
     def __init__(self, y_truth, node):
-        super(Node,self).__init__([y_truth, node])
+        super().__init__([y_truth, node])
 
     def forward(self):
-        y_truth = self.inputs[0]
-        y_pred = self.inputs[1].value
+        y_truth = self.inputs[0].value.reshape(-1,1)
+        y_pred = self.inputs[1].value.reshape(-1,1)
 
         # 为了不出错，保证真值与预测值之间的shape是相同的
         # 利用属性进行变量的传递
-        y_truth = y_truth.reshape(-1,1)
         self.m = y_truth.shape[0]
-        y_pred = y_pred.reshape(-1,1)
+        # ic(y_truth.shape)
+        # ic(y_pred.shape)
         assert y_truth.shape == y_pred.shape
         self.diff = y_truth-y_pred
         self.value = np.mean((self.diff)**2)
 
     def backward(self):
         # 这里是对损失函数求偏微分
-        self.gradients[self.inputs[0]] = 2 * np.mean(self.diff)
-        self.gradients[self.inputs[1]] = -2 * np.mean(self.diff)
+        self.gradients[self.inputs[0]] = (2 / self.m) * self.diff
+        self.gradients[self.inputs[1]] = (-2 / self.m) * self.diff
 
+def forward_and_backward(graph):
+    """
+    将排序过后的节点列表的每一个节点执行前向传播以及反向传播
+    :param graph:
+    :return:
+    """
+    for node in graph:
+        node.forward()
+    for node in graph[::-1]:
+        node.backward()
 
 def toplogical_sort(feed_dict):
     """
@@ -202,6 +213,7 @@ if __name__ == '__main__':
     from sklearn.datasets import load_boston
     from sklearn.utils import resample, shuffle
 
+    loss = []
     # 数据导入
     data = load_boston()
     X_ = data['data']
@@ -211,7 +223,7 @@ if __name__ == '__main__':
     X_ = (X_ - np.mean(X_, axis=0))/ np.std(X_, axis=0)
 
     # 初始化参数
-    n_feature = X_.shape[0]
+    n_feature = X_.shape[1]
     n_hidden = 10
     W1_ = np.random.randn(n_feature, n_hidden)
     B1_ = np.zeros(n_hidden)
@@ -245,9 +257,9 @@ if __name__ == '__main__':
 
     # 经过拓扑排序，使得每一步的条件都具备后
     graph = toplogical_sort(feed_dict)
-    trainables = [W1, W2, b1, b2]
+    trainables = [W1, b1,W2, b2]
 
-    print('the total number of observations is ()'.format(observations_num))
+    print('the total number of observations is {}'.format(observations_num))
 
     for i in range(epoch):
         loss =0
@@ -255,6 +267,11 @@ if __name__ == '__main__':
         # 否则每次取得样本都一样了
         x_batch, y_batch =resample(X_, y_, n_samples=observations_num)
 
+        forward_and_backward(graph)
+        # 更新参数
         sgd_update(trainables)
 
-
+        # 计算损失函数
+        loss += graph[-1].value
+        if not (i % 100):
+            print('the current epoch is {} the loss cost is {}'.format(i,loss))
